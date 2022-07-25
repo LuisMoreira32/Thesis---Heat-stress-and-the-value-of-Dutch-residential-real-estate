@@ -1,0 +1,886 @@
+---
+title: "Thesis"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+```{r}
+r = getOption("repos")
+r["CRAN"] = "http://cran.us.r-project.org"
+options(repos = r)
+library(tidyverse)
+library(dplyr)
+library(summarytools)
+library(sjPlot)
+library(afex)
+library(emmeans)
+library(psych)
+library(car)
+library(ggplot2)
+library(readxl)
+library(ggpubr)
+library(readxl)
+library(stargazer)
+library(moments)
+library(plotly)
+library(plm)
+library(foreign)
+library(lmtest)
+library(lubridate)
+library(DescTools)
+install.packages("caret")
+library(caret)
+library(lmtest)
+library(lubridate)
+install.packages("ggpubr")
+library(ggpubr)
+library(sjPlot)
+install.packages("formattable")
+library(formattable)
+install.packages("gridExtra")
+library(gridExtra)
+install.packages("extrafont")
+library(extrafont)
+font_import()
+loadfonts(device="win") 
+library(plotly)
+install.packages("ncdf4")
+library(ncdf4) 
+install.packages("raster")
+library(raster)
+```
+
+## Heat wave number - graph
+
+
+```{r}
+library(readxl)
+Heat_Waves_NL <- read_excel("Heat_Waves_NL.xlsx", 
+    sheet = "No heat waves")
+View(Heat_Waves_NL)
+figure1<-ggbarplot(Heat_Waves_NL, "Period", "N° of heat Waves",
+ fill = "steelblue", color = "steelblue",
+ label = TRUE, lab.pos = "in", lab.col = "white")
+  geom_hline(yintercept = 0, linetype = 2, color = "lightgray")
+  
+figure1 + labs(title = "Heatwaves registered at De Bilt station", x = "Period", y = "Number of Heatwaves", caption = "Data: KNMI", color = "steelblue", family="A") +theme(text=element_text(family="A", face="bold", size=12))
+```
+
+
+## Warmgetallen
+
+```{r}
+getallen <- data.frame(Year=c("2006", "2018", "1995", "1976", "1947", "1994","2020","1983","2003","2019"),
+   Warmgetallen=c(201.3, 196.0, 169.7, 163.8, 159.2, 147.9, 145.6, 133.9, 133.4, 130.9))
+
+
+figure2<-ggbarplot(getallen, "Year", "Warmgetallen",
+ fill = "steelblue", color = "steelblue",
+ label = TRUE, lab.pos = "out", lab.col = "white")
+  geom_hline(yintercept = 0, linetype = 2, color = "lightgray")
+  
+figure2 + labs(title = "Warmgetallen registered at De Bilt station", x = "Year", y = "Warmgetallen", caption = "Data: KNMI", color = "steelblue", family="A") +theme(text=element_text(family="A", face="bold", size=12))
+```
+
+## Average temperatures registered
+
+#create matrix with 4 columns
+
+```{r}
+tab <- data.frame(Rank=c("1", "2", "3", "4", "5", "6", "7", "8", "9", "10"),
+                  Year=c("2020", "2014", "2018", "2019", "2007", "2006", "2017", "2015", "2011", "2000"),
+                  Average_Temperature=c(11.7, 11.7, 11.3, 11.2, 11.2, 11.2, 10.9, 10.9, 10.9, 10.9))
+
+figure3<-as.data.frame(tab)
+figure3
+
+figure3<-formattable(tab, align =c("l","c","c"), 
+            list(`Indicator Name` = formatter(
+              "span", style = ~ style(color = "grey",font.weight = "bold")) 
+))
+lol<-tableGrob(tab)
+
+lol
+View(tab)
+```
+
+#### CO2 at Mauna Loa
+
+```{r}
+library(readxl)
+co2 <- read_excel("co2.xlsx")
+View(co2)
+
+
+p1 <- ggplot() + geom_line(aes(y = Mean, x = Year),
+                 data = co2)
+windowsFonts(A = windowsFont("Times New Roman"))
+p1
+
+p1 + labs(title = "CO2 in dry air at NOAA’s Mauna Loa Observatory in ppm", x = "Year", y = "Mean CO2 ppm", caption = "Data: gml.noaa.gov", color = "steelblue", family="A") +theme(text=element_text(family="A", face="bold", size=12))
+
+```
+
+## Temperature
+
+```{r}
+temperature <- read_csv("temperature.csv")
+View(temperature)
+
+temperature$Time<-substr(temperature$Time,1,nchar(temperature$Time)-3)
+temperature<-temperature[!duplicated(temperature$Time), ]
+temperature$Time<-as.numeric(temperature$Time)
+str(temperature)
+
+temp<-ggplot(temperature, aes(x=temperature$Time, y=temperature$`Anomaly (deg C)`, group=1)) +
+  geom_line( color="steelblue", size=0.1, alpha=0, linetype=2) + geom_smooth()+
+  geom_hline(yintercept=0, linetype="dashed", 
+                color = "black", size=0.5) 
+
+temp + labs(title = "Temperature Anomaly (°C from 1961-1990 mean)", x = "Year", y = "Temperature Anomaly (smoothed)", caption = "Data: www.cru.uea.ac.uk", color = "steelblue", family="A") + theme(text=element_text(family="A", face="bold", size=12))
+
+
+```
+
+## try to get average temperature in NL
+
+```{r}
+library(readxl)
+nltemp <- read_excel("nltemp.xlsx")
+View(nltemp)
+figure4<-ggplot(nltemp, aes(x=nltemp$Category))  + 
+  geom_line(aes(y = nltemp$`5-yr smooth`), color="steelblue", size=1.5) +
+  geom_hline(yintercept = mean(nltemp$`Annual Mean`), color="darkred", linetype="twodash")+annotate("text", min(nltemp$Category), 9.6, vjust=-1, label = "Average")
+
+figure4 + labs(title = "Annual Mean Temperature of The Netherlands 1901-2020", x = "Year", y = "Temperature (in °C, 5-yr smooth)", caption = "Data: Climate Change Knowledge Portal", color = "steelblue", family="A") + theme(text=element_text(family="A", face="bold", size=12))
+```
+
+
+
+#### CREATE STUDY SUMMARY FOR LITERATURE
+
+```{r}
+library(sjPlot)
+summarystudy <- read_excel("summarystudy.xlsx")
+View(summarystudy)
+
+tab_df(summarystudy,
+file="sjt_des.doc")sjt
+
+#create APA table for heat stress levels
+library(sjPlot)
+heatstresslevels <- read_excel("heat stress levels.xlsx")
+View(heatstresslevels)
+
+tab_df(heatstresslevels,
+file="heat_des.doc")
+```
+
+
+#### CHeck the dataset
+```{r}
+library(haven)
+dataset <- read_sas("nvm_data_tbv_mu_85_17.sas7bdat", 
+    NULL)
+View(dataset)
+
+#filter data set to have noord holland, south holland and Utrecht Provinces
+Brabant <- filter(dataset,dataset$obj_prov_ID ==7 | dataset$obj_prov_ID== 8| dataset$obj_prov_ID== 9)
+# reduce dataset to only include obs. after 2000-01-01
+Bra_2000 <- filter(Brabant, Brabant$obj_hid_DATUM_AANMELDING > "2000-01-01")
+
+# format "Datum afmelding" as.date
+Bra_1 <- Bra_2000
+Bra_1$obj_hid_DATUM_AFMELDING <- as.Date(Bra_1$obj_hid_DATUM_AFMELDING, format= "%Y.%m.%d")
+Bra_1$date <- as.Date(Bra_1$obj_hid_DATUM_AFMELDING)
+
+#delete all NA's from the set
+Bra_2 <- na.omit(Bra_1)
+
+##create boxplot to see if there are outliers
+
+boxplot(Bra_2$obj_hid_TRANSACTIEPRIJS)
+
+# Remove outliers for house price
+Bra_3 <- Bra_2[Bra_2$obj_hid_TRANSACTIEPRIJS < quantile(Bra_2$obj_hid_TRANSACTIEPRIJS, p = 0.99) & 
+                   Bra_2$obj_hid_TRANSACTIEPRIJS > quantile(Bra_2$obj_hid_TRANSACTIEPRIJS, p = 0.01),] 
+
+Bra_4 <- Bra_3[Bra_3$obj_hid_M2 < quantile(Bra_3$obj_hid_M2, p = 0.99) & 
+                   Bra_3$obj_hid_M2 > quantile(Bra_3$obj_hid_M2, p = 0.01),] 
+
+Bra_5 <- Bra_4[Bra_4$obj_hid_NKAMERS < quantile(Bra_4$obj_hid_NKAMERS, p = 0.99) & 
+                   Bra_4$obj_hid_NKAMERS > quantile(Bra_4$obj_hid_NKAMERS, p = 0.01),] 
+
+Bra_6 <- Bra_5[Bra_5$obj_hid_PERCEEL < quantile(Bra_5$obj_hid_PERCEEL, p = 0.99) & 
+                   Bra_5$obj_hid_PERCEEL > quantile(Bra_5$obj_hid_PERCEEL, p = 0.01),] 
+
+Bra_7 <- Bra_6[Bra_6$obj_hid_INHOUD < quantile(Bra_6$obj_hid_INHOUD, p = 0.99) & 
+                   Bra_6$obj_hid_INHOUD > quantile(Bra_6$obj_hid_INHOUD, p = 0.01),]
+
+Bra_8 <- Bra_7[Bra_7$obj_hid_NVERDIEP < quantile(Bra_7$obj_hid_NVERDIEP, p = 0.99) & 
+                   Bra_7$obj_hid_NVERDIEP > quantile(Bra_7$obj_hid_NVERDIEP, p = 0.01),]
+
+Bra_9 <- Bra_8[Bra_8$obj_hid_NWC < quantile(Bra_8$obj_hid_NWC, p = 0.99) & 
+                   Bra_8$obj_hid_NWC > quantile(Bra_8$obj_hid_NWC, p = 0.01),]
+
+Bra_10 <- Bra_9[Bra_9$obj_hid_NKAMERS < quantile(Bra_9$obj_hid_NKAMERS, p = 0.99) & 
+                   Bra_9$obj_hid_NKAMERS > quantile(Bra_9$obj_hid_NKAMERS, p = 0.01),]
+
+Bra_11 <- Bra_10[Bra_10$obj_hid_BWPER < quantile(Bra_10$obj_hid_BWPER, p = 0.99) & 
+                   Bra_10$obj_hid_BWPER > quantile(Bra_10$obj_hid_BWPER, p = 0.01),]
+
+
+plot(Bra_11$obj_hid_PERCEEL)
+# add transactieprijs variable with a log function 
+Bra_11$lprice <- log(Bra_11$obj_hid_TRANSACTIEPRIJS)
+# add m2 with log function
+Bra_11$lm2 <- log(Bra_11$obj_hid_M2)
+
+# correlation matrices 
+# source: http://www.sthda.com/english/wiki/correlation-matrix-a-quick-start-guide-to-analyze-
+#          format-and-visualize-a-correlation-matrix-using-r-software
+         
+space <- Bra_11[, c(13:16)]
+cor_space <- cor(space)
+round(cor_space, 2)
+corrplot::corrplot(cor_space, method = "shade", type = "upper", title = "Space Correlation", tl.col = "black", 
+                   tl.srt = 45)
+
+#space
+colnames(cor_space)[colnames(cor_space) == "obj_hid_M2"] <- "m2"
+rownames(cor_space)[rownames(cor_space) == "obj_hid_M2"] <- "m2"
+colnames(cor_space)[colnames(cor_space) == "obj_hid_PERCEEL"] <- "plot"
+rownames(cor_space)[rownames(cor_space) == "obj_hid_PERCEEL"] <- "plot"
+colnames(cor_space)[colnames(cor_space) == "obj_hid_WOONOPP"] <- "living"
+rownames(cor_space)[rownames(cor_space) == "obj_hid_WOONOPP"] <- "living"
+colnames(cor_space)[colnames(cor_space) == "obj_hid_INHOUD"] <- "volume"
+rownames(cor_space)[rownames(cor_space) == "obj_hid_INHOUD"] <- "volume" 
+
+
+rooms <- Bra_11[, c(37,43,49,50,51,52)]
+cor_rooms <- cor(rooms)
+round(cor_rooms, 2)
+corrplot::corrplot(cor_rooms, method = "shade", type = "upper", title = "Rooms Correlation", tl.col = "black", 
+                  tl.srt = 45)
+
+#rooms
+colnames(cor_rooms)[colnames(cor_rooms) == "obj_hid_NKAMERS"] <- "#rooms"
+rownames(cor_rooms)[rownames(cor_rooms) == "obj_hid_NKAMERS"] <- "#rooms"
+colnames(cor_rooms)[colnames(cor_rooms) == "obj_hid_WOONKA"] <- "#livingrooms"
+rownames(cor_rooms)[rownames(cor_rooms) == "obj_hid_WOONKA"] <- "#livingrooms"
+colnames(cor_rooms)[colnames(cor_rooms) == "obj_hid_NKEUKEN"] <- "#kitchens"
+rownames(cor_rooms)[rownames(cor_rooms) == "obj_hid_NKEUKEN"] <- "#kitchens"
+colnames(cor_rooms)[colnames(cor_rooms) == "obj_hid_NBIJKEUK"] <- "scullery"
+rownames(cor_rooms)[rownames(cor_rooms) == "obj_hid_NBIJKEUK"] <- "scullery"
+colnames(cor_rooms)[colnames(cor_rooms) == "obj_hid_NWC"] <- "#toilets"
+rownames(cor_rooms)[rownames(cor_rooms) == "obj_hid_NWC"] <- "#toilets"
+colnames(cor_rooms)[colnames(cor_rooms) == "obj_hid_NBADK"] <- "#bathrooms"
+rownames(cor_rooms)[rownames(cor_rooms) == "obj_hid_NBADK"] <- "#bathrooms"
+```
+### ####### Dummy variable creation ########
+```{r}
+# apartment dummy: 0 if house categorie, 1 if apartment
+Bra_11$apartment <- if_else(Bra_11$obj_hid_CATEGORIE == 2, 1, 0)
+# building period dummies: base period is 1906-1931
+Bra_11$construction_1500_1905 <- if_else(Bra_11$obj_hid_BWPER == 1, 1, 0)
+Bra_11$construction_1931_1944 <- if_else(Bra_11$obj_hid_BWPER == 3, 1, 0)
+Bra_11$construction_1945_1959 <- if_else(Bra_11$obj_hid_BWPER == 4, 1, 0)
+Bra_11$construction_1960_1970 <- if_else(Bra_11$obj_hid_BWPER == 5, 1, 0)
+Bra_11$construction_1971_1980 <- if_else(Bra_11$obj_hid_BWPER == 6, 1, 0)
+Bra_11$construction_1981_1990 <- if_else(Bra_11$obj_hid_BWPER == 7, 1, 0)
+Bra_11$construction_1991_2000 <- if_else(Bra_11$obj_hid_BWPER == 8, 1, 0)
+Bra_11$construction_2001_later <- if_else(Bra_11$obj_hid_BWPER == 9, 1, 0)
+
+# house type dummies: base is semi-detached house
+Bra_11$corner_house <- if_else(Bra_11$obj_hid_TYPE == 3, 1, 0)
+Bra_11$terraced_house <- if_else(Bra_11$obj_hid_TYPE == 2, 1, 0)
+Bra_11$row_house <- if_else(Bra_11$obj_hid_TYPE == 1, 1, 0)
+Bra_11$detached_house <- if_else(Bra_11$obj_hid_TYPE == 5, 1, 0)
+
+# monument is already a dummy
+
+# apartment type dummies: base is ground floor
+Bra_11$two_floor_apartment <- if_else(Bra_11$obj_hid_SOORTAPP == 7, 1, 0)
+Bra_11$upstairs_apartment <- if_else(Bra_11$obj_hid_SOORTAPP == 2, 1, 0)
+Bra_11$maisonnette_apartment <- if_else(Bra_11$obj_hid_SOORTAPP == 3, 1, 0)
+Bra_11$care_apartment <- if_else(Bra_11$obj_hid_SOORTAPP == 6, 1, 0)
+Bra_11$gallery_apartment <- if_else(Bra_11$obj_hid_SOORTAPP == 4 | 5, 1, 0)
+
+# isnieuwbouw is already a dummy
+
+# basement dummy
+Bra_11$basement <- if_else(Bra_11$obj_hid_KELDER >= 0, 1, 0)
+# lift is already a dummy
+
+# apartment quality dummy: base is apart_quality_regular
+Bra_11$apart_quality_simple <- if_else(Bra_11$obj_hid_KWALITEIT == 0, 1, 0)
+Bra_11$apart_quality_luxurious <- if_else(Bra_11$obj_hid_KWALITEIT == 2, 1, 0)
+
+
+# combine zolder and vlier into one attic dummy variable
+Bra_11$attic <- if_else(Bra_11$obj_hid_ZOLDER == 1 | Bra_11$obj_hid_VLIER == 1, 1, 0)
+
+# parking dummy: base is no parking (all parking option combines, e.g. garage, parking lot, multi-level, etc.)
+Bra_11$parking <- if_else(Bra_11$obj_hid_PARKEER == 0, 0, 1)
+
+# balcony dummy: base is no balcony
+Bra_11$balcony <- if_else(Bra_11$obj_hid_NBALKON >= 1, 1, 0)
+
+# roof terrace dummy 
+Bra_11$roof_terrace <- if_else(Bra_11$obj_hid_NDAKTERRAS >= 1, 1, 0)
+
+# garden dummy
+Bra_11$garden <- if_else(Bra_11$obj_hid_TUINLIG == 0, 0, 1)
+
+# garden good location dummy (south incl SW & SE)
+Bra_11$garden_south <- if_else(Bra_11$obj_hid_TUINLIG == 4 | 5 | 6, 1, 0)
+
+# heating / utility dummies: base is no heating
+Bra_11$ac_solar <- if_else(Bra_11$obj_hid_VERW == 3, 1, 0)
+Bra_11$gas_coal <- if_else(Bra_11$obj_hid_VERW == 1, 1, 0)
+Bra_11$central_heating <- if_else(Bra_11$obj_hid_VERW == 2, 1, 0)
+
+# location dummies
+Bra_11$city_centre <- if_else(Bra_11$obj_hid_LIGCENTR == 3, 1, 0)
+Bra_11$quite_road <- if_else(Bra_11$obj_hid_LIGDRUKW == 0, 1, 0)
+Bra_11$busy_road <- if_else(Bra_11$obj_hid_LIGDRUKW == 2, 1, 0)
+
+# nature location dummies
+Bra_11$free_view <- if_else(Bra_11$obj_hid_LIGMOOI == 4, 1, 0)
+Bra_11$forest <- if_else(Bra_11$obj_hid_LIGMOOI == 1, 1, 0)
+Bra_11$water <- if_else(Bra_11$obj_hid_LIGMOOI == 2, 1, 0)
+Bra_11$park <- if_else(Bra_11$obj_hid_LIGMOOI == 3, 1, 0)
+
+# new dataframe including relevant variables for the hedonic regression
+Bra_12 <- Bra_11[,-c(9,10,12,14,18,20,24,26,29,35,39,40,41,42)]
+
+# rename colunm for regressions
+colnames(Bra_12)[colnames(Bra_12) == "obj_hid_M2"] <- "m2"
+colnames(Bra_12)[colnames(Bra_12) == "obj_hid_ISNIEUWBOUW"] <- "new"
+colnames(Bra_12)[colnames(Bra_12) == "obj_hid_LIFT"] <- "lift"
+colnames(Bra_12)[colnames(Bra_12) == "obj_hid_NVERDIEP"] <- "n_floors"
+colnames(Bra_12)[colnames(Bra_12) == "obj_hid_NKAMERS"] <- "n_rooms"
+colnames(Bra_12)[colnames(Bra_12) == "obj_hid_MONUMENT"] <- "monument"
+colnames(Bra_12)[colnames(Bra_12) == "obj_hid_NBADK"] <- "n_bathrooms"
+colnames(Bra_12)[colnames(Bra_12) == "obj_hid_ONBI"] <- "maintenance_in"
+colnames(Bra_12)[colnames(Bra_12) == "obj_hid_ONBU"] <- "maintenance_out"
+colnames(Bra_12)[colnames(Bra_12) == "obj_hid_ISOL"] <- "n_isolation"
+colnames(Bra_12)[colnames(Bra_12) == "obj_hid_INHOUD"] <- "volume"
+colnames(Bra_12)[colnames(Bra_12) == "obj_hid_PERCEEL"] <- "plot_area"
+
+# hedonic regression using nvm dataset variables only (excl. heat stress)
+
+reg1 <- lm(lprice ~ m2 + n_rooms + n_floors + n_bathrooms + apartment + construction_1500_1905  + 
+             construction_1931_1944 + construction_1945_1959 + construction_1960_1970 + construction_1971_1980 + 
+             construction_1981_1990 + construction_1991_2000 + construction_2001_later + new + corner_house + 
+             terraced_house + row_house + detached_house + two_floor_apartment + upstairs_apartment +
+             maisonnette_apartment + care_apartment + gallery_apartment + lift + basement + balcony +
+             roof_terrace + attic + monument + apart_quality_simple + apart_quality_luxurious + ac_solar + 
+             gas_coal + central_heating + parking + garden + garden_south + city_centre + quite_road + 
+             busy_road + free_view + forest + water + park, data = Bra_12)
+summary(reg1)
+stargazer(reg1, type = "html", out = "reg1.htm")
+
+#### try the regression but with fixed-effects
+gc()
+memory.limit(9999999999)
+fit <-lm(Y ~ X)
+gc() 
+
+
+# remove duplicate post codes with data to create a data frame for the fixxed effects interaction
+Bra_13<-Bra_12 %>% distinct(obj_hid_POSTCODE, date, .keep_all = TRUE)
+
+################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################ LET'S SAVE Bra_13 so we don't have to load the whole thing everytime
+
+save(Bra_13, file = "data.Rdata")
+
+load(file = "data.Rdata")
+
+
+#create the data frame for the fixed effects interaction
+femod.p<-pdata.frame(Bra_13, index = c("obj_hid_POSTCODE", "date"))
+
+#run the FE
+femod<-plm(lprice ~ m2 + n_rooms + n_floors + n_bathrooms + apartment + construction_1500_1905  + 
+             construction_1931_1944 + construction_1945_1959 + construction_1960_1970 + construction_1971_1980 + 
+             construction_1981_1990 + construction_1991_2000 + construction_2001_later + new + corner_house + 
+             terraced_house + row_house + detached_house + two_floor_apartment + upstairs_apartment +
+             maisonnette_apartment + care_apartment + gallery_apartment + lift + basement + balcony +
+             roof_terrace + attic + monument + apart_quality_simple + apart_quality_luxurious + ac_solar + 
+             gas_coal + central_heating + parking + garden + garden_south + city_centre + quite_road + 
+             busy_road + free_view + forest + water + park , data=femod.p, model = "within")
+summary(femod)
+library(stargazer)
+stargazer(femod,title ="Variable descriptive statistics and output parameters equation", covariate.labels = c("Size in m2 (log)","Number of Rooms", "Number of Floors", "Number of Bathrooms", "Apartment", "Construction 1931-1944", "Construction 1945-1959", "Construction 1960-1970", "Construction 1971-1980", "Construction 1981-1990", "Construction 1991-2000", "New", "Corner House", "Terraced House","Row House", "Detached House", "Two-Floor Apartment", "Upstairs Apartment", "Maisonnette", "D: Lift", "D: Basement", "D: Balcony", "D: Roof Terrace", "D:Attic", "D: Monument", "D: Simple Apartment", "D: Luxurious Apartment", "D: AC/Solar", "D: Gas Coal", "D: Central Heating", "D: Parking", "D: Garden","City Centre", "Quite Road", "Busy Road", "Free View", "Forest", "Water", "Park"),   type = "html", out = "reg1.htm", no.space=TRUE, add.lines = list(c("Year and Zip Code Fixed-Effects", "Yes")), single.row = TRUE)
+
+
+summary(Bra_13)
+
+
+## create summary statistics of a few variables to put on the data
+library(gtsummary)
+
+trial2<-Bra_13 %>% select(obj_hid_TRANSACTIEPRIJS, m2 , n_rooms, n_bathrooms , ac_solar , 
+             gas_coal , central_heating, obj_prov_ID)
+
+
+### rename province to actual province name
+trial2$obj_prov_ID<-as.character(trial2$obj_prov_ID)
+trial2$obj_prov_ID[trial2$obj_prov_ID == '7'] <- "Utrecht"
+trial2$obj_prov_ID[trial2$obj_prov_ID == '8'] <- "Noord-Holland"
+trial2$obj_prov_ID[trial2$obj_prov_ID == '9'] <- "Zuid-Holland"
+
+
+table1 <- tbl_summary(trial2)
+table1
+
+gt::tab_options(table.font.names = "Times New Roman")
+
+table2<-tbl_summary(trial2,
+                    by=obj_prov_ID,
+                    label = list(m2 ~" m2", obj_hid_TRANSACTIEPRIJS ~"Price", n_rooms~ "Number of Rooms", n_bathrooms~"Number of Bathrooms", ac_solar~"AC/Solar", gas_coal~"Gas/Coal", central_heating~"Central Heating")) 
+
+table2
+
+table3<-trial2 %>%
+  tbl_summary(by =
+                obj_prov_ID,
+              label = list(m2 ~" m2", obj_hid_TRANSACTIEPRIJS ~"Price", n_rooms~ "Number of Rooms", n_bathrooms~"Number of Bathrooms", ac_solar~"AC/Solar", gas_coal~"Gas/Coal", central_heating~"Central Heating"))%>%
+  as_gt()%>%
+  gt::tab_options(table.font.names = "Times New Roman")%>%
+  as_flex_table()%>%
+  flextable::save_as_docx()
+table3
+### save for word file
+
+```
+
+#####TRY TO MAP AC IN HOUSES BEFORE 2003 AND AFTER
+
+```{r}
+#filter for the date first between 2000 and 2003 right after the heat wave
+ac2003<- filter(Bra_13, Bra_13$obj_hid_DATUM_AANMELDING > "2000-01-01" & Bra_13$obj_hid_DATUM_AANMELDING <"2003-09-01")
+
+#create data frame with only ac_solar variable
+
+ac2003_01<-ac2003[84]
+# we get a total of 104,851 observations
+
+sum(ac2003_01$ac_solar==1)
+
+#only 18 houses transacted in this dataset had AC/Solar
+
+### now lets do the same but for the period 3 years after the heat wave
+
+acafter<- filter(Bra_13, Bra_13$obj_hid_DATUM_AANMELDING > "2003-09-01" & Bra_13$obj_hid_DATUM_AANMELDING <"2006-09-01")
+
+ac2003_01_after<-acafter[84]
+
+
+sum(ac2003_01_after$ac_solar==1)
+#only 11 houses transacted after that had AC
+
+ac_count<-Bra_13[46]
+sum(ac_count$obj_hid_VERW==3)
+#only 102 houses total have AC in the whole dataset
+
+sum(Bra_1$obj_hid_VERW==3)
+
+##check the number of ground floor apartments
+sum(Bra_13$obj_hid_SOORTWONING==21)
+## we get 557 groundfloor apartments
+
+#check the number of upstair apartmetnts
+sum(Bra_13$obj_hid_SOORTWONING==22)
+#We get 2407 upstair apartments
+
+
+#check the number of healthcare houses
+sum(Bra_13$obj_hid_SOORTWONING==26)
+#just 1
+```
+
+##♠REMOVE SPACES FROM POSTAL CODE
+
+```{r}
+# remove blank between postalcode
+sentenceString <- Bra_13$obj_hid_POSTCODE
+searchString <- " "
+replacementString <- ""
+sentenceString = gsub(searchString,replacementString,sentenceString)
+Bra_13$obj_hid_POSTCODE <- sentenceString
+
+
+##########export file to csv addresses##########
+
+
+write.csv(Bra_13[8], "test.csv")
+```
+
+##try to open Climate Impact Atlas map
+
+```{r}
+install.packages("raster")
+install.packages("rgdal")
+library(rgdal)
+library(raster)
+##create file
+grey <- raster("cas.tif")
+
+#check the map
+plot(grey)
+
+#summary from the thing
+summary(grey)
+```
+
+
+#### TEST RUN WITH A FEW OBS
+
+```{r}
+##upload the data
+library(readxl)
+latlong <- read_excel("latlong.xlsx", col_types = c("text", 
+    "text", "numeric", "numeric"))
+#remove the full address column
+latlong$full_address<-NULL
+### join the data with the dataset
+
+##first create test dataset
+
+test_bra<-Bra_13[1:3722, ]
+
+##try to join the data
+test_bra$postalcode<-latlong$`"obj_hid_POSTCODE"`
+test_bra$lat<-latlong$lat
+test_bra$long<-latlong$long
+
+######## Use tutorial to understand spatial data ########
+## http://www.seascapemodels.org/rstats/rspatial/2015/06/22/R_Spatial_course.html# 
+# Turning points into a spatial object
+coordinates(test_bra) <- ~long + lat
+coordinates(test_bra)
+spplot(test_bra)
+plot(test_bra)
+
+# Transform to local projection
+proj4string(test_bra) <- "+proj=longlat +ellps=GRS80 +no_defs"
+myproj <- "+proj=sterea +lat_0=52.15616055555555 +lon_0=5.38763888888889 +k=0.9999079 +x_0=155000 +y_0=463000
++ellps=bessel +towgs84=565.2369,50.0087,465.658,-0.406857,0.350733,-1.87035,4.0812 +units=m +no_defs"
+
+datutm <- spTransform(test_bra, CRS(myproj))
+coordinates(datutm)
+
+a4250<-raster("35.tif")
+plot(a4250)  
+spplot(a4250)
+  
+
+#### test youtube
+testlat<-raster("randstad.tif")
+plot(testlat)
+spplot(testlat)
+testlat
+p=as(testlat@extent, "SpatialPolygons")
+pts=spsample(p, n=50000000, "random")
+pts$value=runif(50000000, min=36, max = 51)
+dataframe=as.data.frame(pts)
+```
+
+
+
+###MERGE TWO DATASETS BASED ON LAT LONG
+
+```{r}
+## import dataset with post codes + lat and long
+
+library(readxl)
+unique <- read_excel("Coordinates/unique.xlsx")
+
+
+
+#### that did not work: let's try to remove some last digits
+
+unique$realx<-substr(unique$x,1,6)
+unique$realy<-substr(unique$y,1,7)
+
+
+###• do the same for the raster
+
+dataframe$realx<-substr(dataframe$x,1,6)
+dataframe$realy<-substr(dataframe$y,1,7)
+
+save(dataframe, file = "dataframe.Rdata")
+
+load(file = "dataframe.Rdata")
+##let's try to merge again
+total<-merge(dataframe, unique, by = c("realx", "realy"))
+###some observations
+
+total$x.x<-NULL
+total$y.x<-NULL
+total$x.y<-NULL
+total$y.y<-NULL
+
+```
+
+
+#### MERGE THE FINAL DATA SET WITH TEMP DATA AND ALL OTHER CHARAHCTHERISTICS
+
+```{r}
+###first we need to rename so both have zip_code as common variable
+colnames(Bra_13)[colnames(Bra_13) == "obj_hid_POSTCODE"] <- "zip_code"
+
+
+## then we need to remove the space in between the numbers and letter
+
+sentenceString <- Bra_13$zip_code
+searchString <- " "
+replacementString <- ""
+sentenceString = gsub(searchString,replacementString,sentenceString)
+Bra_13$zip_code <- sentenceString
+
+
+### Now I think we have everything
+
+first<-merge(total, Bra_13, by = "zip_code")
+
+###let's remove some duplicates
+
+second<-distinct(first, first$obj_ID, .keep_all = TRUE)
+
+### let's try first regression
+
+#create the data frame for the fixed effects interaction
+femod.p<-pdata.frame(second, index = c("zip_code", "date"))
+
+###let's try to add random numbers
+
+femod.p$random<-runif(77214, min=0.0000001, max = 0.000001)
+
+femod.p$newvalue<-femod.p$value+femod.p$random
+
+femod.p$newvalue<-as.numeric(femod.p$newvalue)
+
+femod.p$lognewvalue<-log(femod.p$newvalue)
+
+##do I need to standardize the variable?
+
+femod.p$scale<-(femod.p$newvalue-mean(femod.p$newvalue))/sd(femod.p$newvalue)
+
+#run the FE
+femod<-plm(lprice ~ newvalue + m2 + n_rooms + n_floors + n_bathrooms + apartment + construction_1500_1905  + 
+             construction_1931_1944 + construction_1945_1959 + construction_1960_1970 + construction_1971_1980 + 
+             construction_1981_1990 + construction_1991_2000 + construction_2001_later + new + corner_house + 
+             terraced_house + row_house + detached_house + two_floor_apartment + upstairs_apartment +
+             maisonnette_apartment + care_apartment + gallery_apartment + lift + basement + balcony +
+             roof_terrace + attic + monument + apart_quality_simple + apart_quality_luxurious + ac_solar + 
+             gas_coal + central_heating + parking + garden + garden_south + city_centre + quite_road + 
+             busy_road + free_view + forest + water + park, data=femod.p, model = "within")
+summary(femod)
+
+stargazer(femod,
+          title="Temperature and Price Effects",
+          dep.var.caption = "Property Transaction Price",
+          dep.var.labels = "Price in Log",
+          omit = c("construction_1931_1944", "construction_1945_1959",
+                   "construction_1960_1970", "construction_1971_1980",
+                   "construction_1981_1990", "construction_1991_2000",
+                   "lift", "basement", "balcony", "roof_terrace", "monument", "apart_quality_simple", "apart_quality_luxurious", "parking", "garden", "city_centre", "quite_road", "busy_road", "free_view", "forest", "water", "park"),
+          covariate.labels = c("Temperature 2050", "m2", "Number of Rooms", "Number of Floors", "Number of Bathrooms", "Apartment", "New Dwelling", "Corner House", "Terraced House", "Row House", "Detached House", "Two Floor Apartment", "Upstairs Apartment", "Maisonnette", "Attic", "AC/Solar", "Gas/Coal", "Central Heating"),
+          type = "html", add.lines = list(c("Year and Zip Code Fixed-Effects", "Yes")),
+          no.space = TRUE, single.row=TRUE,
+          out = "stargazer.htm")
+
+#### let's try the same but without temperature
+
+femod1<-plm(lprice ~ m2 + n_rooms + n_floors + n_bathrooms + apartment + construction_1500_1905  + 
+             construction_1931_1944 + construction_1945_1959 + construction_1960_1970 + construction_1971_1980 + 
+             construction_1981_1990 + construction_1991_2000 + construction_2001_later + new + corner_house + 
+             terraced_house + row_house + detached_house + two_floor_apartment + upstairs_apartment +
+             maisonnette_apartment + care_apartment + gallery_apartment + lift + basement + balcony +
+             roof_terrace + attic + monument + apart_quality_simple + apart_quality_luxurious + ac_solar + 
+             gas_coal + central_heating + parking + garden + garden_south + city_centre + quite_road + 
+             busy_road + free_view + forest + water + park, data=femod.p, model = "within")
+
+summary(femod1)
+
+stargazer(femod1,
+          title="Temperature and Price Effects",
+          dep.var.caption = "Property Transaction Price",
+          dep.var.labels = "Price in Log",
+          omit = c("construction_1931_1944", "construction_1945_1959",
+                   "construction_1960_1970", "construction_1971_1980",
+                   "construction_1981_1990", "construction_1991_2000",
+                   "lift", "basement", "balcony", "roof_terrace", "monument", "apart_quality_simple", "apart_quality_luxurious", "parking", "garden", "city_centre", "quite_road", "busy_road", "free_view", "forest", "water", "park"),
+          covariate.labels = c("m2", "Number of Rooms", "Number of Floors", "Number of Bathrooms", "Apartment", "New Dwelling", "Corner House", "Terraced House", "Row House", "Detached House", "Two Floor Apartment", "Upstairs Apartment", "Maisonnette", "Attic", "AC/Solar", "Gas/Coal", "Central Heating"),
+          type = "html", add.lines = list(c("Year and Zip Code Fixed-Effects", "Yes")),
+          no.space = TRUE, single.row=TRUE,
+          out = "stargazer1.htm")
+
+
+###☺ NO CHANGE IN ANY OF THE VARIABLES, TEMPERATURE REALLY IS USELESS
+```
+
+
+################################################################################################################################################################################ HEAT WAVE STUDY ##########################
+
+
+```{r}
+# create dummy variables for transactions that happened during heatwave in 2015
+
+# 1 quarter first
+
+femod.p$post_quarter<-ifelse(femod.p$obj_hid_DATUM_AFMELDING >= "2015-07-05" & femod.p$obj_hid_DATUM_AFMELDING < "2015-10-05", 1, 0)
+
+# half-year
+
+femod.p$post_half<-ifelse(femod.p$obj_hid_DATUM_AFMELDING >= "2015-07-05" & femod.p$obj_hid_DATUM_AFMELDING < "2016-01-05", 1, 0)
+
+# one-year
+
+femod.p$post_year<-ifelse(femod.p$obj_hid_DATUM_AFMELDING >= "2015-07-05" & femod.p$obj_hid_DATUM_AFMELDING < "2016-07-05", 1, 0)
+
+#two- year
+
+femod.p$post_two_year<-ifelse(femod.p$obj_hid_DATUM_AFMELDING >= "2015-07-05" & femod.p$obj_hid_DATUM_AFMELDING < "2017-07-05", 1, 0)
+
+
+heat_wave2015<-plm(lprice ~ newvalue + m2 + n_rooms + n_floors + n_bathrooms + apartment + construction_1500_1905  + 
+             construction_1931_1944 + construction_1945_1959 + construction_1960_1970 + construction_1971_1980 + 
+             construction_1981_1990 + construction_1991_2000 + construction_2001_later + new + corner_house + 
+             terraced_house + row_house + detached_house + two_floor_apartment + upstairs_apartment +
+             maisonnette_apartment + care_apartment + gallery_apartment + lift + basement + balcony +
+             roof_terrace + attic + monument + apart_quality_simple + apart_quality_luxurious + ac_solar + 
+             gas_coal + central_heating + parking + garden + garden_south + city_centre + quite_road + 
+             busy_road + free_view + forest + water + park + post_two_year, data=femod.p, model = "within")
+summary(heat_wave2015)
+```
+
+
+##### try the 2013 heat wave - SIGNIFICANT AND NEGATIVE IMPACT
+
+```{r}
+# 1 quarter first
+femod.p$post_quarter_2013<-ifelse(femod.p$obj_hid_DATUM_AFMELDING >= "2013-07-27" & femod.p$obj_hid_DATUM_AFMELDING < "2013-10-27", 1, 0)
+
+### half-year
+
+femod.p$post_half_2013<-ifelse(femod.p$obj_hid_DATUM_AFMELDING >= "2013-07-27" & femod.p$obj_hid_DATUM_AFMELDING < "2014-01-27", 1, 0)
+
+###æ one-year
+
+femod.p$post_one_2013<-ifelse(femod.p$obj_hid_DATUM_AFMELDING >= "2013-07-27" & femod.p$obj_hid_DATUM_AFMELDING < "2014-07-27", 1, 0)
+
+### two-year
+
+femod.p$post_two_2013<-ifelse(femod.p$obj_hid_DATUM_AFMELDING >= "2013-07-27" & femod.p$obj_hid_DATUM_AFMELDING < "2015-07-27", 1, 0)
+
+### Run regression
+heat_wave2013<-plm(lprice ~ newvalue + m2 + n_rooms + n_floors + n_bathrooms + apartment + construction_1500_1905  + 
+             construction_1931_1944 + construction_1945_1959 + construction_1960_1970 + construction_1971_1980 + 
+             construction_1981_1990 + construction_1991_2000 + construction_2001_later + new + corner_house + 
+             terraced_house + row_house + detached_house + two_floor_apartment + upstairs_apartment +
+             maisonnette_apartment + care_apartment + gallery_apartment + lift + basement + balcony +
+             roof_terrace + attic + monument + apart_quality_simple + apart_quality_luxurious + ac_solar + 
+             gas_coal + central_heating + parking + garden + garden_south + city_centre + quite_road + 
+             busy_road + free_view + forest + water + park + post_one_2013, data=femod.p, model = "within")
+summary(heat_wave2013)
+```
+
+########################################################################################################################################################################### SAVE FEMOD.P DATAFRAME ########################
+
+```{r}
+save(femod.p, file = "femod.Rdata")
+
+load(file = "femod.Rdata")
+```
+
+
+###### TRY THE 2003 HEAT WAVE
+
+```{r}
+### one quarter
+heat_wave2003_quarter<-plm(lprice ~ newvalue + m2 + n_rooms + n_floors + n_bathrooms + apartment + construction_1500_1905  + 
+             construction_1931_1944 + construction_1945_1959 + construction_1960_1970 + construction_1971_1980 + 
+             construction_1981_1990 + construction_1991_2000 + construction_2001_later + new + corner_house + 
+             terraced_house + row_house + detached_house + two_floor_apartment + upstairs_apartment +
+             maisonnette_apartment + care_apartment + gallery_apartment + lift + basement + balcony +
+             roof_terrace + attic + monument + apart_quality_simple + apart_quality_luxurious + ac_solar + 
+             gas_coal + central_heating + parking + garden + garden_south + city_centre + quite_road + 
+             busy_road + free_view + forest + water + park + post_quarter_2003, data=femod.p, model = "within")
+summary(heat_wave2003_quarter)
+
+###half-year
+
+heat_wave2003_half<-plm(lprice ~ newvalue + m2 + n_rooms + n_floors + n_bathrooms + apartment + construction_1500_1905  + 
+             construction_1931_1944 + construction_1945_1959 + construction_1960_1970 + construction_1971_1980 + 
+             construction_1981_1990 + construction_1991_2000 + construction_2001_later + new + corner_house + 
+             terraced_house + row_house + detached_house + two_floor_apartment + upstairs_apartment +
+             maisonnette_apartment + care_apartment + gallery_apartment + lift + basement + balcony +
+             roof_terrace + attic + monument + apart_quality_simple + apart_quality_luxurious + ac_solar + 
+             gas_coal + central_heating + parking + garden + garden_south + city_centre + quite_road + 
+             busy_road + free_view + forest + water + park + post_half_2003, data=femod.p, model = "within")
+summary(heat_wave2003_half)
+
+### one-year
+
+heat_wave2003_one<-plm(lprice ~ newvalue + m2 + n_rooms + n_floors + n_bathrooms + apartment + construction_1500_1905  + 
+             construction_1931_1944 + construction_1945_1959 + construction_1960_1970 + construction_1971_1980 + 
+             construction_1981_1990 + construction_1991_2000 + construction_2001_later + new + corner_house + 
+             terraced_house + row_house + detached_house + two_floor_apartment + upstairs_apartment +
+             maisonnette_apartment + care_apartment + gallery_apartment + lift + basement + balcony +
+             roof_terrace + attic + monument + apart_quality_simple + apart_quality_luxurious + ac_solar + 
+             gas_coal + central_heating + parking + garden + garden_south + city_centre + quite_road + 
+             busy_road + free_view + forest + water + park + post_one_2003, data=femod.p, model = "within")
+summary(heat_wave2003_one)
+
+
+
+save(Bra_13, file = "bra_13_updated.Rdata")
+
+load(file = "bra_13_updated.Rdata")
+
+save(femod.p, file = "femod.p_updated.Rdata")
+
+load(file = "femod.p_updated.Rdata")
+
+save(first, file = "first.Rdata")
+```
+
+####### Maybe try to divide by heat stress levels
+
+```{r}
+femod.p$level1<-ifelse(femod.p$newvalue >= '36' & femod.p$newvalue < '41', 1, 0)
+
+femod.p$level1<-as.numeric(femod.p$level1)
+
+str(femod.p$level1)
+
+medium_risk<-plm(lprice ~ level1  +m2 + n_rooms + n_floors + n_bathrooms + apartment + construction_1500_1905  + 
+             construction_1931_1944 + construction_1945_1959 + construction_1960_1970 + construction_1971_1980 + 
+             construction_1981_1990 + construction_1991_2000 + construction_2001_later + new + corner_house + 
+             terraced_house + row_house + detached_house + two_floor_apartment + upstairs_apartment +
+             maisonnette_apartment + care_apartment + gallery_apartment + lift + basement + balcony +
+             roof_terrace + attic + monument + apart_quality_simple + apart_quality_luxurious + ac_solar + 
+             gas_coal + central_heating + parking + garden + garden_south + city_centre + quite_road + 
+             busy_road + free_view + forest + water + park, data=femod.p, model = "within")
+summary(medium_risk)
+```
+
+
+
+
+
+
+
+
+
+
+

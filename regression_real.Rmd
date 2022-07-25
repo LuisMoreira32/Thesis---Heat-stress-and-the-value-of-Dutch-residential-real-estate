@@ -1,0 +1,591 @@
+---
+title: "regressions"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+load(file = "bra_13_updated.Rdata")
+load(file = "first.Rdata")
+library("tidyverse")
+library("haven")
+library("raster")
+library("sp")
+library("rgdal")
+library("stargazer")
+library("plm")
+```
+
+```{r}
+str(Bra_13$date)
+```
+
+```{r}
+Bra_13$year <- Bra_13$date
+Bra_13$year <- substring(Bra_13$year, 1,4)
+Bra_13$year <- as.factor(Bra_13$year)
+summary(Bra_13$year)
+Bra_13$month <- Bra_13$date
+Bra_13$month <- substring(Bra_13$month, 6,7)
+Bra_13$month <- as.factor(Bra_13$month)
+summary(Bra_13$month)
+Bra_13$gem <- as.factor(Bra_13$obj_gem_ID)
+summary(Bra_13$gem)
+Bra_13$zip5 <- substring(Bra_13$obj_hid_POSTCODE, 1, 5)
+```
+
+
+```{r}
+first$year <- first$date
+first$year <- substring(first$year, 1,4)
+first$year <- as.factor(first3$year)
+summary(first$year)
+first$month <- first$date
+first$month <- substring(first$month, 6,7)
+first$month <- as.factor(first$month)
+summary(first$month)
+first$gem <- as.factor(first$obj_gem_ID)
+summary(first$gem)
+first$zip5 <- substring(first$zip_code, 1, 4)
+```
+
+
+
+####### MAIN SET OF RESULTS
+
+
+
+
+```{r}
+## normal FE regression without temperature
+reg_plm1 <- plm(lprice ~ lm2 + n_rooms + n_floors + n_bathrooms + construction_1500_1905 + 
+             construction_1931_1944 + construction_1945_1959 + construction_1960_1970 + construction_1971_1980 + 
+             construction_1981_1990 + construction_1991_2000 + construction_2001_later + new + corner_house + 
+             terraced_house + row_house + detached_house + lift + basement + balcony + roof_terrace + attic + 
+             monument + ac_solar + gas_coal + central_heating + parking + garden + city_centre + 
+             quite_road + busy_road + free_view + forest + water + park + factor(year),
+             data = first, index = "obj_prov_ID", model = "within")
+summary(reg_plm1)
+
+
+stargazer(reg_plm1,
+          title="Temperature and Price Effects",
+          dep.var.caption = "Property Transaction Price",
+          dep.var.labels = "Price in Log",
+          type = "html", add.lines = list(c("Year and Zip Code Fixed-Effects", "Yes")),
+          out = "descriptive.htm")
+
+# include PET measures
+
+reg_plm2 <- plm(lprice ~ lm2 + n_rooms + n_floors + n_bathrooms + construction_1500_1905 + 
+             construction_1931_1944 + construction_1945_1959 + construction_1960_1970 + construction_1971_1980 + 
+             construction_1981_1990 + construction_1991_2000 + construction_2001_later + new + corner_house + 
+             terraced_house + row_house + detached_house + lift + basement + balcony + roof_terrace + attic + 
+             monument + ac_solar + gas_coal + central_heating + parking + garden + city_centre + 
+             quite_road + busy_road + free_view + forest + water + park + value + factor(year),
+             data = first, index = "obj_prov_ID", model = "within")
+summary(reg_plm2)
+
+
+
+```
+
+
+####### try dividing by temperatures
+
+
+
+```{r}
+#### create dummy for great heat stress 35-41
+
+first$great<-ifelse(first$value >= "36" & first$value <= "41", 1, 0)
+
+#### try regression
+reg_great <- plm(lprice ~ lm2 + n_rooms + n_floors + n_bathrooms + construction_1500_1905 + 
+             construction_1931_1944 + construction_1945_1959 + construction_1960_1970 + construction_1971_1980 + 
+             construction_1981_1990 + construction_1991_2000 + construction_2001_later + new + corner_house + 
+             terraced_house + row_house + detached_house + lift + basement + balcony + roof_terrace + attic + 
+             monument + ac_solar + gas_coal + central_heating + parking + garden + city_centre + 
+             quite_road + busy_road + free_view + forest + water + park + great + value + extreme + factor(year),
+             data = first, index = "obj_prov_ID", model = "within")
+summary(reg_great)
+
+
+##### try the extreme ones
+
+first$extreme<-ifelse(first$value > "41", 1, 0)
+
+reg_extreme <- plm(lprice ~ lm2 + n_rooms + n_floors + n_bathrooms + construction_1500_1905 + 
+             construction_1931_1944 + construction_1945_1959 + construction_1960_1970 + construction_1971_1980 + 
+             construction_1981_1990 + construction_1991_2000 + construction_2001_later + new + corner_house + 
+             terraced_house + row_house + detached_house + lift + basement + balcony + roof_terrace + attic + 
+             monument + ac_solar + gas_coal + central_heating + parking + garden + city_centre + 
+             quite_road + busy_road + free_view + forest + water + park + extreme + value + great + factor(year),
+             data = first, index = "obj_prov_ID", model = "within")
+summary(reg_extreme)
+```
+
+
+
+
+####### 2003 HEAT-WAVE
+```{r}
+### create dummy for 2003 heat wave
+
+# 1 quarter first
+first$post_quarter_2003<-ifelse(first$obj_hid_DATUM_AFMELDING >= "2003-08-14" & first$obj_hid_DATUM_AFMELDING < "2003-11-14", 1, 0)
+
+reg_plm3 <- plm(lprice ~ lm2 + n_rooms + n_floors + n_bathrooms + construction_1500_1905 + 
+             construction_1931_1944 + construction_1945_1959 + construction_1960_1970 + construction_1971_1980 + 
+             construction_1981_1990 + construction_1991_2000 + construction_2001_later + new + corner_house + 
+             terraced_house + row_house + detached_house + lift + basement + balcony + roof_terrace + attic + 
+             monument + ac_solar + gas_coal + central_heating + parking + garden + city_centre + 
+             quite_road + busy_road + free_view + forest + water + park + value + post_quarter_2003 + factor(year),
+             data = first, index = "zip5", model = "within")
+summary(reg_plm3)
+
+### half-year
+
+first$post_half_2003<-ifelse(first$obj_hid_DATUM_AFMELDING >= "2003-11-14" & first$obj_hid_DATUM_AFMELDING < "2004-02-14", 1, 0)
+
+reg_plm4 <- plm(lprice ~ lm2 + n_rooms + n_floors + n_bathrooms + construction_1500_1905 + 
+             construction_1931_1944 + construction_1945_1959 + construction_1960_1970 + construction_1971_1980 + 
+             construction_1981_1990 + construction_1991_2000 + construction_2001_later + new + corner_house + 
+             terraced_house + row_house + detached_house + lift + basement + balcony + roof_terrace + attic + 
+             monument + ac_solar + gas_coal + central_heating + parking + garden + city_centre + 
+             quite_road + busy_road + free_view + forest + water + park + value + post_half_2003 + factor(year),
+             data = first, index = "zip5", model = "within")
+summary(reg_plm4)
+
+###æ one-year
+
+first$post_one_2003<-ifelse(first$obj_hid_DATUM_AFMELDING >= "2004-02-14" & first$obj_hid_DATUM_AFMELDING < "2004-08-14", 1, 0)
+
+reg_plm5 <- plm(lprice ~ lm2 + n_rooms + n_floors + n_bathrooms + construction_1500_1905 + 
+             construction_1931_1944 + construction_1945_1959 + construction_1960_1970 + construction_1971_1980 + 
+             construction_1981_1990 + construction_1991_2000 + construction_2001_later + new + corner_house + 
+             terraced_house + row_house + detached_house + lift + basement + balcony + roof_terrace + attic + 
+             monument + ac_solar + gas_coal + central_heating + parking + garden + city_centre + 
+             quite_road + busy_road + free_view + forest + water + park + value + post_one_2003 + factor(year),
+             data = first, index = "zip5", model = "within")
+summary(reg_plm5)
+
+###æ two-year
+
+first$post_two_2003<-ifelse(first$obj_hid_DATUM_AFMELDING >= "2004-08-14" & first$obj_hid_DATUM_AFMELDING < "2005-08-14", 1, 0)
+
+reg_plm6 <- plm(lprice ~ lm2 + n_rooms + n_floors + n_bathrooms + construction_1500_1905 + 
+             construction_1931_1944 + construction_1945_1959 + construction_1960_1970 + construction_1971_1980 + 
+             construction_1981_1990 + construction_1991_2000 + construction_2001_later + new + corner_house + 
+             terraced_house + row_house + detached_house + lift + basement + balcony + roof_terrace + attic + 
+             monument + ac_solar + gas_coal + central_heating + parking + garden + city_centre + 
+             quite_road + busy_road + free_view + forest + water + park + value + post_quarter_2003 * value + post_half_2003 * value + post_one_2003 * value + post_two_2003 * value + factor(year),
+             data = first, index = "obj_prov_ID", model = "within")
+summary(reg_plm6)
+```
+
+
+######## 2006 HEAT WAVE
+
+```{r}
+### quarter
+first$post_quarter_2006<-ifelse(first$obj_hid_DATUM_AFMELDING >= "2006-07-30" & first$obj_hid_DATUM_AFMELDING < "2006-10-30", 1, 0)
+
+reg_plm7 <- plm(lprice ~ lm2 + n_rooms + n_floors + n_bathrooms + construction_1500_1905 + 
+             construction_1931_1944 + construction_1945_1959 + construction_1960_1970 + construction_1971_1980 + 
+             construction_1981_1990 + construction_1991_2000 + construction_2001_later + new + corner_house + 
+             terraced_house + row_house + detached_house + lift + basement + balcony + roof_terrace + attic + 
+             monument + ac_solar + gas_coal + central_heating + parking + garden + city_centre + 
+             quite_road + busy_road + free_view + forest + water + park + value + post_quarter_2006 + factor(year),
+             data = first, index = "zip5", model = "within")
+summary(reg_plm7)
+
+### half-year
+
+first$post_half_2006<-ifelse(first$obj_hid_DATUM_AFMELDING >= "2006-10-30" & first$obj_hid_DATUM_AFMELDING < "2007-01-30", 1, 0)
+
+reg_plm8 <- plm(lprice ~ lm2 + n_rooms + n_floors + n_bathrooms + construction_1500_1905 + 
+             construction_1931_1944 + construction_1945_1959 + construction_1960_1970 + construction_1971_1980 + 
+             construction_1981_1990 + construction_1991_2000 + construction_2001_later + new + corner_house + 
+             terraced_house + row_house + detached_house + lift + basement + balcony + roof_terrace + attic + 
+             monument + ac_solar + gas_coal + central_heating + parking + garden + city_centre + 
+             quite_road + busy_road + free_view + forest + water + park + value + post_half_2006 + factor(year),
+             data = first, index = "zip5", model = "within")
+summary(reg_plm8)
+
+###æ one-year
+
+first$post_one_2006<-ifelse(first$obj_hid_DATUM_AFMELDING >= "2007-01-30" & first$obj_hid_DATUM_AFMELDING < "2007-07-30", 1, 0)
+
+reg_plm9 <- plm(lprice ~ lm2 + n_rooms + n_floors + n_bathrooms + construction_1500_1905 + 
+             construction_1931_1944 + construction_1945_1959 + construction_1960_1970 + construction_1971_1980 + 
+             construction_1981_1990 + construction_1991_2000 + construction_2001_later + new + corner_house + 
+             terraced_house + row_house + detached_house + lift + basement + balcony + roof_terrace + attic + 
+             monument + ac_solar + gas_coal + central_heating + parking + garden + city_centre + 
+             quite_road + busy_road + free_view + forest + water + park + value + post_one_2006 + factor(year),
+             data = first, index = "zip5", model = "within")
+summary(reg_plm9)
+
+### two-year
+
+first$post_two_2006<-ifelse(first$obj_hid_DATUM_AFMELDING >= "2007-07-30" & first$obj_hid_DATUM_AFMELDING < "2008-07-30", 1, 0)
+
+reg_plm10 <- plm(lprice ~ lm2 + n_rooms + n_floors + n_bathrooms + construction_1500_1905 + 
+             construction_1931_1944 + construction_1945_1959 + construction_1960_1970 + construction_1971_1980 + 
+             construction_1981_1990 + construction_1991_2000 + construction_2001_later + new + corner_house + 
+             terraced_house + row_house + detached_house + lift + basement + balcony + roof_terrace + attic + 
+             monument + ac_solar + gas_coal + central_heating + parking + garden + city_centre + 
+             quite_road + busy_road + free_view + forest + water + park + value + post_quarter_2006 * value + post_half_2006 * value + post_one_2006 * value  + post_two_2006 * value + factor(year),
+             data = first, index = "obj_prov_ID", model = "within")
+summary(reg_plm10)
+```
+
+####### TRY 2013 HEATWAVE
+
+
+
+
+
+```{r}
+
+### quarter
+first$post_quarter_2013<-ifelse(first$obj_hid_DATUM_AFMELDING >= "2013-07-27" & first$obj_hid_DATUM_AFMELDING < "2013-10-27", 1, 0)
+
+reg_plm11 <- plm(lprice ~ lm2 + n_rooms + n_floors + n_bathrooms + construction_1500_1905 + 
+             construction_1931_1944 + construction_1945_1959 + construction_1960_1970 + construction_1971_1980 + 
+             construction_1981_1990 + construction_1991_2000 + construction_2001_later + new + corner_house + 
+             terraced_house + row_house + detached_house + lift + basement + balcony + roof_terrace + attic + 
+             monument + ac_solar + gas_coal + central_heating + parking + garden + city_centre + 
+             quite_road + busy_road + free_view + forest + water + park + value + post_quarter_2013 + factor(year),
+             data = first, index = "zip5", model = "within")
+summary(reg_plm11)
+
+### half-year
+
+first$post_half_2013<-ifelse(first$obj_hid_DATUM_AFMELDING >= "2013-10-27" & first$obj_hid_DATUM_AFMELDING < "2014-01-27", 1, 0)
+
+reg_plm12 <- plm(lprice ~ lm2 + n_rooms + n_floors + n_bathrooms + construction_1500_1905 + 
+             construction_1931_1944 + construction_1945_1959 + construction_1960_1970 + construction_1971_1980 + 
+             construction_1981_1990 + construction_1991_2000 + construction_2001_later + new + corner_house + 
+             terraced_house + row_house + detached_house + lift + basement + balcony + roof_terrace + attic + 
+             monument + ac_solar + gas_coal + central_heating + parking + garden + city_centre + 
+             quite_road + busy_road + free_view + forest + water + park + value + post_half_2013 + factor(year),
+             data = first, index = "zip5", model = "within")
+summary(reg_plm12)
+
+###æ one-year
+
+first$post_one_2013<-ifelse(first$obj_hid_DATUM_AFMELDING >= "2014-01-27" & first$obj_hid_DATUM_AFMELDING < "2014-07-27", 1, 0)
+
+reg_plm13 <- plm(lprice ~ lm2 + n_rooms + n_floors + n_bathrooms + construction_1500_1905 + 
+             construction_1931_1944 + construction_1945_1959 + construction_1960_1970 + construction_1971_1980 + 
+             construction_1981_1990 + construction_1991_2000 + construction_2001_later + new + corner_house + 
+             terraced_house + row_house + detached_house + lift + basement + balcony + roof_terrace + attic + 
+             monument + ac_solar + gas_coal + central_heating + parking + garden + city_centre + 
+             quite_road + busy_road + free_view + forest + water + park + value + post_one_2013 + factor(year),
+             data = first, index = "zip5", model = "within")
+summary(reg_plm13)
+
+### two-year
+
+first$post_two_2013<-ifelse(first$obj_hid_DATUM_AFMELDING >= "2014-07-27" & first$obj_hid_DATUM_AFMELDING < "2015-07-27", 1, 0)
+
+reg_plm14 <- plm(lprice ~ lm2 + n_rooms + n_floors + n_bathrooms + construction_1500_1905 + 
+             construction_1931_1944 + construction_1945_1959 + construction_1960_1970 + construction_1971_1980 + 
+             construction_1981_1990 + construction_1991_2000 + construction_2001_later + new + corner_house + 
+             terraced_house + row_house + detached_house + lift + basement + balcony + roof_terrace + attic + 
+             monument + ac_solar + gas_coal + central_heating + parking + garden + city_centre + 
+             quite_road + busy_road + free_view + forest + water + park + value + post_quarter_2013 * value + post_half_2013 * value + post_one_2013 * value  +post_two_2013 * value + factor(year),
+             data = first, index = "obj_prov_ID", model = "within")
+summary(reg_plm14)
+
+```
+
+
+
+
+
+
+
+###### 2015 HEAT-WAVE
+
+
+
+
+
+```{r}
+### quarter
+first$post_quarter_2015<-ifelse(first$obj_hid_DATUM_AFMELDING >= "2015-07-05" & first$obj_hid_DATUM_AFMELDING < "2015-10-05", 1, 0)
+
+reg_plm15 <- plm(lprice ~ lm2 + n_rooms + n_floors + n_bathrooms + construction_1500_1905 + 
+             construction_1931_1944 + construction_1945_1959 + construction_1960_1970 + construction_1971_1980 + 
+             construction_1981_1990 + construction_1991_2000 + construction_2001_later + new + corner_house + 
+             terraced_house + row_house + detached_house + lift + basement + balcony + roof_terrace + attic + 
+             monument + ac_solar + gas_coal + central_heating + parking + garden + city_centre + 
+             quite_road + busy_road + free_view + forest + water + park + value + post_quarter_2015 + factor(year),
+             data = first, index = "zip5", model = "within")
+summary(reg_plm15)
+
+### half-year
+
+first$post_half_2015<-ifelse(first$obj_hid_DATUM_AFMELDING >= "2015-10-05" & first$obj_hid_DATUM_AFMELDING < "2016-01-05", 1, 0)
+
+reg_plm16 <- plm(lprice ~ lm2 + n_rooms + n_floors + n_bathrooms + construction_1500_1905 + 
+             construction_1931_1944 + construction_1945_1959 + construction_1960_1970 + construction_1971_1980 + 
+             construction_1981_1990 + construction_1991_2000 + construction_2001_later + new + corner_house + 
+             terraced_house + row_house + detached_house + lift + basement + balcony + roof_terrace + attic + 
+             monument + ac_solar + gas_coal + central_heating + parking + garden + city_centre + 
+             quite_road + busy_road + free_view + forest + water + park + value + post_half_2015 + factor(year),
+             data = first, index = "zip5", model = "within")
+summary(reg_plm16)
+
+###æ one-year
+
+first$post_one_2015<-ifelse(first$obj_hid_DATUM_AFMELDING >= "2016-01-05" & first$obj_hid_DATUM_AFMELDING < "2016-07-05", 1, 0)
+
+reg_plm17 <- plm(lprice ~ lm2 + n_rooms + n_floors + n_bathrooms + construction_1500_1905 + 
+             construction_1931_1944 + construction_1945_1959 + construction_1960_1970 + construction_1971_1980 + 
+             construction_1981_1990 + construction_1991_2000 + construction_2001_later + new + corner_house + 
+             terraced_house + row_house + detached_house + lift + basement + balcony + roof_terrace + attic + 
+             monument + ac_solar + gas_coal + central_heating + parking + garden + city_centre + 
+             quite_road + busy_road + free_view + forest + water + park + value + post_one_2015 + factor(year),
+             data = first, index = "zip5", model = "within")
+summary(reg_plm17)
+
+### two-year
+
+first$post_two_2015<-ifelse(first$obj_hid_DATUM_AFMELDING >= "2016-07-05" & first$obj_hid_DATUM_AFMELDING < "2017-07-05", 1, 0)
+
+reg_plm18 <- plm(lprice ~ lm2 + n_rooms + n_floors + n_bathrooms + construction_1500_1905 + 
+             construction_1931_1944 + construction_1945_1959 + construction_1960_1970 + construction_1971_1980 + 
+             construction_1981_1990 + construction_1991_2000 + construction_2001_later + new + corner_house + 
+             terraced_house + row_house + detached_house + lift + basement + balcony + roof_terrace + attic + 
+             monument + ac_solar + gas_coal + central_heating + parking + garden + city_centre + 
+             quite_road + busy_road + free_view + forest + water + park + value + post_quarter_2015 * value + post_half_2015 * value + post_one_2015 * value  + post_two_2015 * value + factor(year),
+             data = first, index = "obj_prov_ID", model = "within")
+summary(reg_plm18)
+```
+
+
+###################################################### 2006 HEAT-WAVE ################################################################################################################################################################################################################################
+
+
+
+
+######### TRY UPSTAIRS VS GROUNDFLOOR APARTMENT
+
+```{r}
+reg_plm14 <- plm(lprice ~ lm2 + n_rooms + n_floors + n_bathrooms + construction_1500_1905 + 
+             construction_1931_1944 + construction_1945_1959 + construction_1960_1970 + construction_1971_1980 + 
+             construction_1981_1990 + construction_1991_2000 + construction_2001_later + new + corner_house + 
+             terraced_house + row_house + detached_house + lift + basement + balcony + roof_terrace + attic + 
+             monument + ac_solar + gas_coal + central_heating + parking + garden + city_centre + 
+             quite_road + busy_road + free_view + forest + water + park + value + upstairs_apartment + factor(year),
+             data = first, index = "zip5", model = "within")
+summary(reg_plm14)
+
+#### negative coefficient; but I don't know what it really means
+```
+
+
+############################### OUTPUT TABLES ####################################################################
+
+
+```{r}
+
+########## MAIN TESTS
+stargazer(reg_plm2, reg_great, reg_extreme,
+          title="Temperature and Price Effects",
+          dep.var.caption = "Property Transaction Price",
+          dep.var.labels = "Price in Log",
+          omit = c("construction_1931_1944", "construction_1945_1959",
+                   "construction_1960_1970", "construction_1971_1980",
+                   "construction_1981_1990", "construction_1991_2000",
+                   "lift", "basement", "balcony", "roof_terrace", "monument", "apart_quality_simple", "apart_quality_luxurious", "parking", "garden", "city_centre", "quite_road", "busy_road", "free_view", "forest", "water", "park", "lm2", "n_rooms", "n_floors", "n_bathrooms", "new", "corner_house", "terraced_house", "row_house", "detached_house", "attic", "ac_solar", "gas_coal", "central_heating", "factor(year)2001"),
+          type = "html", add.lines = list(c("Year and Zip Code Fixed-Effects", "Yes")),
+          out = "first_output.htm")
+
+
+#### HEATWAVE TEST
+
+stargazer(reg_plm6, reg_plm10, reg_plm14, reg_plm18,
+          title="Temperature and Price Effects",
+          dep.var.caption = "Property Transaction Price",
+          dep.var.labels = "Price in Log",
+          type = "html", add.lines = list(c("Year and Zip Code Fixed-Effects", "Yes")),
+          out = "heat_output.htm")
+```
+
+######### Diff-in-Diff
+
+```{r}
+# I want to have 2 years before and 2 years after ideally
+
+###maybe split the data set according to the heat waves
+
+## start with 2015
+
+## 1year
+
+heat_2015_1$yearquarter<-as.yearqtr(heat_2015_1$obj_hid_DATUM_AFMELDING, format = "%Y-%m-%d")
+heat_2015_1$yearquarter
+
+cond1_2015 <- first$obj_hid_DATUM_AFMELDING >= "2014-07-05" & first$obj_hid_DATUM_AFMELDING < "2016-07-05"
+heat_2015_1 <- first[cond1_2015,];
+
+heat_2015_1$post<-ifelse(heat_2015_1$obj_hid_DATUM_AFMELDING >= "2015-07-05", 1, 0)
+
+diff_2015_1 <- plm(lprice ~ lm2 + n_rooms + n_floors + n_bathrooms + construction_1500_1905 + 
+             construction_1931_1944 + construction_1945_1959 + construction_1960_1970 + construction_1971_1980 + 
+             construction_1981_1990 + construction_1991_2000 + construction_2001_later + new + corner_house + 
+             terraced_house + row_house + detached_house + lift + basement + balcony + roof_terrace + attic + 
+             monument + ac_solar + gas_coal + central_heating + parking + garden + city_centre + 
+             quite_road + busy_road + free_view + forest + water + park + value + upstairs_apartment + post + great + (post*great) + factor(yearquarter),
+             data = heat_2015_1, index = "obj_prov_ID", model = "within")
+summary(diff_2015_1)
+
+
+## 2 year
+cond <- first$obj_hid_DATUM_AFMELDING >= "2013-07-05"
+heat_2015 <- first[cond,];
+
+heat_2015$post<-ifelse(heat_2015$obj_hid_DATUM_AFMELDING >= "2015-07-05", 1, 0)
+
+
+diff_2015 <- plm(lprice ~ lm2 + n_rooms + n_floors + n_bathrooms + construction_1500_1905 + 
+             construction_1931_1944 + construction_1945_1959 + construction_1960_1970 + construction_1971_1980 + 
+             construction_1981_1990 + construction_1991_2000 + construction_2001_later + new + corner_house + 
+             terraced_house + row_house + detached_house + lift + basement + balcony + roof_terrace + attic + 
+             monument + ac_solar + gas_coal + central_heating + parking + garden + city_centre + 
+             quite_road + busy_road + free_view + forest + water + park + value + upstairs_apartment + post + great + (post*great) + factor(year),
+             data = heat_2015, index = "obj_prov_ID", model = "within")
+summary(diff_2015)
+```
+
+###### do the 2013 heat wave
+
+```{r}
+###### 1 year
+
+heat_2013_1$yearquarter<-as.yearqtr(heat_2013_1$obj_hid_DATUM_AFMELDING, format = "%Y-%m-%d")
+heat_2013_1$yearquarter
+
+cond1_2013 <- first$obj_hid_DATUM_AFMELDING >= "2012-07-27" & first$obj_hid_DATUM_AFMELDING < "2014-07-27"
+heat_2013_1 <- first[cond1_2013,];
+
+heat_2013_1$post<-ifelse(heat_2013_1$obj_hid_DATUM_AFMELDING >= "2013-07-27", 1, 0)
+
+
+diff_2013_1 <- plm(lprice ~ lm2 + n_rooms + n_floors + n_bathrooms + construction_1500_1905 + 
+             construction_1931_1944 + construction_1945_1959 + construction_1960_1970 + construction_1971_1980 + 
+             construction_1981_1990 + construction_1991_2000 + construction_2001_later + new + corner_house + 
+             terraced_house + row_house + detached_house + lift + basement + balcony + roof_terrace + attic + 
+             monument + ac_solar + gas_coal + central_heating + parking + garden + city_centre + 
+             quite_road + busy_road + free_view + forest + water + park + value + upstairs_apartment + post + great + (post*great) + factor(yearquarter),
+             data = heat_2013_1, index = "obj_prov_ID", model = "within")
+summary(diff_2013_1)
+
+
+###### 2 years
+cond1 <- first$obj_hid_DATUM_AFMELDING >= "2011-07-27" & first$obj_hid_DATUM_AFMELDING < "2015-07-27"
+heat_2013 <- first[cond1,];
+
+heat_2013$post<-ifelse(heat_2013$obj_hid_DATUM_AFMELDING >= "2013-07-27", 1, 0)
+
+
+diff_2013 <- plm(lprice ~ lm2 + n_rooms + n_floors + n_bathrooms + construction_1500_1905 + 
+             construction_1931_1944 + construction_1945_1959 + construction_1960_1970 + construction_1971_1980 + 
+             construction_1981_1990 + construction_1991_2000 + construction_2001_later + new + corner_house + 
+             terraced_house + row_house + detached_house + lift + basement + balcony + roof_terrace + attic + 
+             monument + ac_solar + gas_coal + central_heating + parking + garden + city_centre + 
+             quite_road + busy_road + free_view + forest + water + park + value + upstairs_apartment + post + great + (post*great) + factor(year),
+             data = heat_2013, index = "obj_prov_ID", model = "within")
+summary(diff_2013)
+```
+
+#### 2003 heatwave
+
+```{r}
+heat_2003$yearquarter<-as.yearqtr(heat_2003$obj_hid_DATUM_AFMELDING, format = "%Y-%m-%d")
+heat_2003$yearquarter
+
+cond_2003 <- first$obj_hid_DATUM_AFMELDING >= "2002-08-14" & first$obj_hid_DATUM_AFMELDING < "2004-08-14"
+heat_2003 <- first[cond_2003,];
+
+heat_2003$post<-ifelse(heat_2003$obj_hid_DATUM_AFMELDING >= "2003-08-14", 1, 0)
+
+diff_2003 <- plm(lprice ~ lm2 + n_rooms + n_floors + n_bathrooms + construction_1500_1905 + 
+             construction_1931_1944 + construction_1945_1959 + construction_1960_1970 + construction_1971_1980 + 
+             construction_1981_1990 + construction_1991_2000 + construction_2001_later + new + corner_house + 
+             terraced_house + row_house + detached_house + lift + basement + balcony + roof_terrace + attic + 
+             monument + ac_solar + gas_coal + central_heating + parking + garden + city_centre + 
+             quite_road + busy_road + free_view + forest + water + park + value + upstairs_apartment + post + great + (post*great) + factor(yearquarter),
+             data = heat_2003, index = "obj_prov_ID", model = "within")
+summary(diff_2003)
+```
+
+
+#### 2006 heatwave
+
+```{r}
+### let's try yearly quarter fixed-effects
+heat_2006_1$yearquarter<-as.yearqtr(heat_2006_1$obj_hid_DATUM_AFMELDING, format = "%Y-%m-%d")
+heat_2006_1$yearquarter
+
+
+cond_2006_1 <- first$obj_hid_DATUM_AFMELDING >= "2005-07-30" & first$obj_hid_DATUM_AFMELDING < "2007-07-30"
+heat_2006_1 <- first[cond_2006_1,];
+
+heat_2006_1$post<-ifelse(heat_2006_1$obj_hid_DATUM_AFMELDING >= "2006-07-30", 1, 0)
+
+diff_2006_1 <- plm(lprice ~ lm2 + n_rooms + n_floors + n_bathrooms + construction_1500_1905 + 
+             construction_1931_1944 + construction_1945_1959 + construction_1960_1970 + construction_1971_1980 + 
+             construction_1981_1990 + construction_1991_2000 + construction_2001_later + new + corner_house + 
+             terraced_house + row_house + detached_house + lift + basement + balcony + roof_terrace + attic + 
+             monument + ac_solar + gas_coal + central_heating + parking + garden + city_centre + 
+             quite_road + busy_road + free_view + forest + water + park + value + upstairs_apartment + post + great + (post*great) + factor(yearquarter),
+             data = heat_2006_1, index = "obj_prov_ID", model = "within")
+summary(diff_2006_1)
+```
+
+#### Output diff-in-diff
+
+```{r}
+stargazer(diff_2003, diff_2006_1, diff_2013_1, diff_2015_1,
+          title="Temperature and Price Effects",
+          dep.var.caption = "Property Transaction Price",
+          dep.var.labels = "Price in Log",
+          type = "html", add.lines = list(c("Seasonal and Zip Code Fixed-Effects", "Yes")),
+          out = "heat_output.htm")
+```
+
+
+####### Let's get some graphs around here
+
+ title= "Price development", subtitle = "2000-2017, Noord-Brabant") +
+  theme(legend.position = "left")
+```{r}
+test_3 <- aggregate(first$obj_hid_TRANSACTIEPRIJS, list(factor(first$year)), mean)
+ggplot(test_3, aes(x = Group.1, y = x)) + labs(x= "Year", y = "Average transaction price")+ 
+  geom_point(color = "blue", size=0.25) + 
+  geom_smooth(color = "red", size=1) + 
+  theme_bw() +
+  theme(text=element_text(family="Times New Roman", face="bold", size=12)) +
+  labs(y= "Transaction price", x="Time", title= "Price development", subtitle = "2000-2017, Noord-Brabant") +
+  theme(legend.position = "left")
+
+
+plot<-ggplot(data = first, aes(x= date, y= obj_hid_TRANSACTIEPRIJS)) + 
+  geom_point(color = "blue", size=0.25) + 
+  geom_smooth(color = "red", size=1) + 
+  theme_bw() +
+  theme(text=element_text(family="Times New Roman", face="bold", size=12)) +
+  labs(y= "Transaction price", x="Time", title= "Price development", subtitle = "2000-2017, Noord-Brabant") +
+  theme(legend.position = "left")
+
+plot
+```
+
